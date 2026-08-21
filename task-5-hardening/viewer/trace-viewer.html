@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Trace & Flame-Graph Viewer — Task 5</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-hover: #334155;
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-purple: #a855f7;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --border-color: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .title-group h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .title-group p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .file-btn {
+      background: var(--accent-blue);
+      color: #0f172a;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: opacity 0.2s;
+    }
+    .file-btn:hover { opacity: 0.9; }
+    input[type="file"] { display: none; }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .main-view {
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.85rem;
+      text-align: center;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; }
+    .stat-value { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
+    .stat-value.highlight { color: var(--accent-amber); }
+
+    .highlight-card {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+    .highlight-title { font-weight: 600; color: var(--accent-amber); }
+    .highlight-btn {
+      background: var(--accent-amber);
+      color: #0f172a;
+      border: none;
+      padding: 0.35rem 0.75rem;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .flame-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.25rem;
+      flex: 1;
+    }
+
+    .flame-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .flame-tree {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .span-bar {
+      display: flex;
+      align-items: center;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      background: rgba(56, 189, 248, 0.15);
+      border-left: 4px solid var(--accent-blue);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 0.85rem;
+      position: relative;
+    }
+    .span-bar:hover {
+      background: rgba(56, 189, 248, 0.25);
+      transform: translateX(2px);
+    }
+    .span-bar.selected {
+      outline: 2px solid var(--accent-blue);
+      background: rgba(56, 189, 248, 0.3);
+    }
+    .span-bar.most-expensive {
+      border-left-color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.2);
+    }
+    .span-bar.type-critic_review { border-left-color: var(--accent-purple); background: rgba(168, 85, 247, 0.15); }
+    .span-bar.type-planner_call { border-left-color: var(--accent-emerald); background: rgba(16, 185, 129, 0.15); }
+    .span-bar.type-executor_call { border-left-color: var(--accent-blue); background: rgba(56, 189, 248, 0.15); }
+    .span-bar.type-tool_call { border-left-color: #64748b; background: rgba(100, 116, 139, 0.15); }
+    .span-bar.status-budget_stopped { border-left-color: var(--accent-rose); background: rgba(244, 63, 94, 0.2); }
+
+    .span-name { font-weight: 600; flex: 1; margin-right: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .span-meta { display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); }
+    .span-tag { background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 4px; }
+    .span-tag.tokens { color: var(--accent-amber); font-weight: 600; }
+    .span-tag.cost { color: var(--accent-emerald); font-weight: 600; }
+
+    /* Side Inspector */
+    .inspector {
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-color);
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .inspector-header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.75rem;
+    }
+    .inspector-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+    .inspector-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    .inspector-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .field-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .field-value { font-size: 0.9rem; color: var(--text-primary); }
+
+    .code-box {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      max-height: 220px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #e2e8f0;
+    }
+
+    .redaction-badge {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+      padding: 0.5rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-group">
+      <h1>📊 Agent Trace Flame-Graph Viewer</h1>
+      <p>Task 5 — Observability, Spans & Token Budgets</p>
+    </div>
+    <div class="controls">
+      <label class="file-btn">
+        📂 Load Trace JSON
+        <input type="file" id="traceFileInput" accept=".json">
+      </label>
+      <button class="file-btn" style="background:#475569; color:#fff;" onclick="loadSampleTrace()">⚡ Load Sample Task 4 Trace</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <main class="main-view">
+      <div class="stats-bar" id="statsBar">
+        <div class="stat-card">
+          <div class="stat-label">Total Latency</div>
+          <div class="stat-value" id="statDuration">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Tokens</div>
+          <div class="stat-value highlight" id="statTokens">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Estimated Cost</div>
+          <div class="stat-value" id="statCost">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Trace Completeness</div>
+          <div class="stat-value" id="statCompleteness">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Spans</div>
+          <div class="stat-value" id="statSpans">-</div>
+        </div>
+      </div>
+
+      <div class="highlight-card" id="expensiveBanner" style="display:none;">
+        <div>
+          <span class="highlight-title">🔥 Most Expensive Step:</span>
+          <span id="expensiveStepName">-</span> (<span id="expensiveTokens">-</span> tokens, <span id="expensiveCost">-</span>)
+        </div>
+        <button class="highlight-btn" onclick="selectMostExpensiveSpan()">Locate Step</button>
+      </div>
+
+      <div class="flame-container">
+        <div class="flame-title">
+          <span>Execution Hierarchy & Flame Tree</span>
+          <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">Indented by Call Depth</span>
+        </div>
+        <div class="flame-tree" id="flameTree">
+          <div class="empty-state">Load a trace JSON file or click "Load Sample Task 4 Trace" to begin.</div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="inspector" id="inspector">
+      <div class="empty-state" style="padding-top:6rem;">Select any span from the flame graph to inspect inputs, outputs, token usage, and redactions.</div>
+    </aside>
+  </div>
+
+  <script>
+    let currentTrace = null;
+    let mostExpensiveSpanId = null;
+
+    document.getElementById('traceFileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          renderTrace(data);
+        } catch(err) {
+          alert("Invalid JSON trace file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function renderTrace(traceData) {
+      currentTrace = traceData;
+      const spans = traceData.spans || [];
+
+      // Stats
+      document.getElementById('statDuration').innerText = (traceData.totalDurationMs || 0) + ' ms';
+      const totalTokens = traceData.totalTokens ? traceData.totalTokens.total : 0;
+      document.getElementById('statTokens').innerText = totalTokens.toLocaleString();
+      document.getElementById('statCost').innerText = '$' + (traceData.totalCostUsd || 0).toFixed(6);
+      document.getElementById('statCompleteness').innerText = ((traceData.completeness ?? 1.0) * 100).toFixed(1) + '%';
+      document.getElementById('statSpans').innerText = spans.length;
+
+      // Find most expensive step
+      let maxTokens = -1;
+      let maxSpan = null;
+      for (const s of spans) {
+        const tokens = s.tokenCounts?.total || 0;
+        if (tokens > maxTokens) {
+          maxTokens = tokens;
+          maxSpan = s;
+        }
+      }
+
+      if (maxSpan && maxTokens > 0) {
+        mostExpensiveSpanId = maxSpan.id;
+        document.getElementById('expensiveBanner').style.display = 'flex';
+        document.getElementById('expensiveStepName').innerText = maxSpan.name;
+        document.getElementById('expensiveTokens').innerText = maxTokens.toLocaleString();
+        document.getElementById('expensiveCost').innerText = '$' + (maxSpan.costEstimateUsd || 0).toFixed(6);
+      } else {
+        document.getElementById('expensiveBanner').style.display = 'none';
+      }
+
+      // Build hierarchical tree
+      const spanMap = new Map();
+      const childrenMap = new Map();
+      spans.forEach(s => {
+        spanMap.set(s.id, s);
+        if (!childrenMap.has(s.parentId)) childrenMap.set(s.parentId, []);
+        childrenMap.get(s.parentId).push(s);
+      });
+
+      const flameTree = document.getElementById('flameTree');
+      flameTree.innerHTML = '';
+
+      function renderNode(span, depth = 0) {
+        const div = document.createElement('div');
+        div.className = `span-bar type-${span.type} status-${span.status} ${span.id === mostExpensiveSpanId ? 'most-expensive' : ''}`;
+        div.id = `bar-${span.id}`;
+        div.style.marginLeft = `${depth * 24}px`;
+
+        const tokens = span.tokenCounts?.total ? span.tokenCounts.total.toLocaleString() + ' tok' : '';
+        const cost = span.costEstimateUsd ? '$' + span.costEstimateUsd.toFixed(5) : '';
+        const duration = span.durationMs ? span.durationMs + 'ms' : '';
+
+        div.innerHTML = `
+          <div class="span-name">${escapeHtml(span.name)} <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted); opacity:0.8;">(${span.type})</span></div>
+          <div class="span-meta">
+            ${tokens ? `<span class="span-tag tokens">🔥 ${tokens}</span>` : ''}
+            ${cost ? `<span class="span-tag cost">${cost}</span>` : ''}
+            ${duration ? `<span class="span-tag">${duration}</span>` : ''}
+            <span class="span-tag">${span.status}</span>
+          </div>
+        `;
+
+        div.onclick = () => selectSpan(span.id);
+        flameTree.appendChild(div);
+
+        const children = childrenMap.get(span.id) || [];
+        children.forEach(child => renderNode(child, depth + 1));
+      }
+
+      const rootSpans = childrenMap.get(null) || spans.filter(s => !s.parentId);
+      rootSpans.forEach(r => renderNode(r, 0));
+
+      if (spans.length > 0) {
+        selectSpan(mostExpensiveSpanId || spans[0].id);
+      }
+    }
+
+    function selectSpan(spanId) {
+      if (!currentTrace) return;
+      const span = currentTrace.spans.find(s => s.id === spanId);
+      if (!span) return;
+
+      document.querySelectorAll('.span-bar').forEach(el => el.classList.remove('selected'));
+      const activeBar = document.getElementById(`bar-${span.id}`);
+      if (activeBar) activeBar.classList.add('selected');
+
+      const inspector = document.getElementById('inspector');
+      inspector.innerHTML = `
+        <div class="inspector-header">
+          <div class="inspector-title">${escapeHtml(span.name)}</div>
+          <div class="inspector-subtitle">ID: ${span.id} | Parent: ${span.parentId || 'None (Root)'}</div>
+        </div>
+
+        <div class="inspector-field">
+          <div class="field-label">Type & Status</div>
+          <div class="field-value">${span.type} | <strong>${span.status}</strong></div>
+        </div>
+
+        <div class="inspector-field">
+          <div class="field-label">Timing & Duration</div>
+          <div class="field-value">${span.durationMs ?? 0} ms (${span.startTime} → ${span.endTime || 'In progress'})</div>
+        </div>
+
+        <div class="inspector-field">
+          <div class="field-label">Token Breakdown & Cost</div>
+          <div class="field-value">
+            Prompt: ${span.tokenCounts?.prompt ?? 0} | Completion: ${span.tokenCounts?.completion ?? 0} | Total: <strong>${span.tokenCounts?.total ?? 0}</strong><br>
+            Estimated Cost: <strong style="color:var(--accent-emerald);">$${(span.costEstimateUsd ?? 0).toFixed(6)}</strong>
+          </div>
+        </div>
+
+        ${span.redactions && span.redactions.length > 0 ? `
+          <div class="inspector-field">
+            <div class="field-label" style="color:var(--accent-rose);">Redactions Applied (${span.redactions.length})</div>
+            <div class="redaction-badge">
+              ${span.redactions.map(r => `• ${escapeHtml(r)}`).join('<br>')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="inspector-field">
+          <div class="field-label">Input Payload</div>
+          <div class="code-box">${escapeHtml(JSON.stringify(span.input, null, 2))}</div>
+        </div>
+
+        <div class="inspector-field">
+          <div class="field-label">Output Payload</div>
+          <div class="code-box">${escapeHtml(JSON.stringify(span.output ?? span.error ?? {}, null, 2))}</div>
+        </div>
+      `;
+    }
+
+    function selectMostExpensiveSpan() {
+      if (mostExpensiveSpanId) {
+        selectSpan(mostExpensiveSpanId);
+        const bar = document.getElementById(`bar-${mostExpensiveSpanId}`);
+        if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function escapeHtml(str) {
+      if (typeof str !== 'string') return String(str);
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function loadSampleTrace() {
+      const sample = {
+        runId: "task4-orch-demo-001",
+        totalSpans: 5,
+        totalDurationMs: 4250,
+        totalTokens: { prompt: 2150, completion: 540, total: 2690 },
+        totalCostUsd: 0.00754,
+        completeness: 1.0,
+        rootSpans: ["span-orch-root"],
+        spans: [
+          {
+            id: "span-orch-root",
+            parentId: null,
+            runId: "task4-orch-demo-001",
+            type: "orchestrator_run",
+            name: "orchestrator.runTask",
+            startTime: "2026-08-19T10:00:00.000Z",
+            endTime: "2026-08-19T10:00:04.250Z",
+            durationMs: 4250,
+            status: "ok",
+            tokenCounts: { prompt: 2150, completion: 540, total: 2690 },
+            costEstimateUsd: 0.00754,
+            input: { task: "Fix authentication token expiration edge case" },
+            output: { finalOutcome: "approved", rounds: 1 }
+          },
+          {
+            id: "span-planner",
+            parentId: "span-orch-root",
+            runId: "task4-orch-demo-001",
+            type: "planner_call",
+            name: "planner.generatePlan",
+            startTime: "2026-08-19T10:00:00.100Z",
+            endTime: "2026-08-19T10:00:01.200Z",
+            durationMs: 1100,
+            status: "ok",
+            tokenCounts: { prompt: 650, completion: 140, total: 790 },
+            costEstimateUsd: 0.00214,
+            input: { task: "Fix auth edge case" },
+            output: { steps: ["Inspect auth.ts", "Update verifyToken()", "Run tests"] }
+          },
+          {
+            id: "span-executor",
+            parentId: "span-orch-root",
+            runId: "task4-orch-demo-001",
+            type: "executor_call",
+            name: "executor.generatePatch",
+            startTime: "2026-08-19T10:00:01.250Z",
+            endTime: "2026-08-19T10:00:02.850Z",
+            durationMs: 1600,
+            status: "ok",
+            tokenCounts: { prompt: 820, completion: 280, total: 1100 },
+            costEstimateUsd: 0.00332,
+            input: { plan: "Step 2: Update verifyToken" },
+            output: { filePath: "src/auth.ts", patchApplied: true }
+          },
+          {
+            id: "span-critic",
+            parentId: "span-orch-root",
+            runId: "task4-orch-demo-001",
+            type: "critic_review",
+            name: "critic.reviewPatch",
+            startTime: "2026-08-19T10:00:02.900Z",
+            endTime: "2026-08-19T10:00:04.100Z",
+            durationMs: 1200,
+            status: "ok",
+            tokenCounts: { prompt: 680, completion: 120, total: 800 },
+            costEstimateUsd: 0.00208,
+            input: { filePath: "src/auth.ts", originalTask: "Fix auth edge case" },
+            output: { verdict: "approve", reasoning: "Correct boundary checking logic applied." }
+          }
+        ]
+      };
+      renderTrace(sample);
+    }
+  </script>
+</body>
+</html>

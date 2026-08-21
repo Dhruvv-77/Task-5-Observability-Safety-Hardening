@@ -1,0 +1,23 @@
+{
+  "name": "task-5-hardening",
+  "version": "1.0.0",
+  "description": "Agent Observability, Safety Evals, and Cost Budgets",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "redteam": "tsx src/redteam/runner.ts",
+    "breaker:demo": "tsx src/budget/demo.ts",
+    "viewer": "npx serve -s viewer"
+  },
+  "keywords": ["agentic-ai", "observability", "tracing", "safety", "redteam", "cost-budgets"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

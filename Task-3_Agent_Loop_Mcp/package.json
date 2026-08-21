@@ -1,0 +1,19 @@
+{
+    "name": "agent-loop-mcp",
+    "private": true,
+    "packageManager": "pnpm@10.16.1",
+    "scripts": {
+        "agent": "pnpm --filter @intern/agent agent",
+        "eval": "pnpm --filter @intern/agent eval",
+        "mcp": "pnpm --filter @intern/agent mcp",
+        "test": "pnpm test:canary && pnpm test:stuck && pnpm test:traversal && pnpm test:outside",
+        "test:canary": "pnpm --filter @intern/agent exec tsx ../../evals/canary-approval.test.ts",
+        "test:stuck": "pnpm --filter @intern/agent exec tsx ../../evals/stuck-loop.test.ts",
+        "test:traversal": "pnpm --filter @intern/agent exec tsx ../../evals/path-traversal.test.ts",
+        "test:outside": "pnpm --filter @intern/agent exec tsx ../../evals/outside-surface.test.ts"
+    },
+    "devDependencies": {
+        "@types/node": "^26.2.0",
+        "typescript": "^5.9.2"
+    }
+}

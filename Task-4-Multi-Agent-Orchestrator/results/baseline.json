@@ -1,0 +1,11 @@
+{
+  "configName": "Config A (Single-Agent Baseline)",
+  "taskSuccessRate": 1,
+  "criticCatchRate": 0,
+  "rubberStampRate": 0,
+  "meanRevisionRounds": 1,
+  "redundantRoundTripRatio": 0,
+  "totalTokensPerTask": 1556,
+  "wallClockPerTaskMs": 17756,
+  "sampleSize": 15
+}

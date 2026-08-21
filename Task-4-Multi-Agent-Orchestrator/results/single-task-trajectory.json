@@ -1,0 +1,152 @@
+{
+  "taskId": "task-1787043822484",
+  "category": "well-specified",
+  "task": "Add email domain validation in corpus/mini-auth-utils-pristine/tests/validator.email.test.ts (reject if not ending with @company.com)",
+  "plan": {
+    "taskId": "task-1787043822484",
+    "originalTask": "Add email domain validation in corpus/mini-auth-utils-pristine/tests/validator.email.test.ts (reject if not ending with @company.com)",
+    "approach": "Add a new test case in validator.email.test.ts to validate email domain. The test case should check if emails not ending with @company.com are rejected.",
+    "affectedFiles": [
+      "corpus/mini-auth-utils-pristine/tests/validator.email.test.ts"
+    ],
+    "expectedOutcome": "The test case should pass for valid emails ending with @company.com and fail for invalid emails not ending with @company.com.",
+    "risks": [
+      "Ensure no existing tests are accidentally broken by the new test case."
+    ],
+    "clarifyingQuestion": null
+  },
+  "patches": [
+    {
+      "taskId": "task-1787043822484",
+      "planId": "task-1787043822484",
+      "filePath": "corpus/mini-auth-utils-pristine/tests/validator.email.test.ts",
+      "code": "import { expect } from 'chai';\nimport { validateEmail } from '../../src/validator.email';\n\nsuite('validator.email', () => {\n  test('validates email domain correctly', () => {\n    // Valid email\n    expect(validateEmail('test@company.com')).to.be.true;\n\n    // Invalid email (wrong domain)\n    expect(validateEmail('test@wrongdomain.com')).to.be.false;\n  });\n});",
+      "reasoning": "This code patch adds a new test case to the existing suite in validator.email.test.ts. The test case checks if the validateEmail function correctly validates the email domain, ensuring that only emails ending with @company.com are accepted. The test uses the 'chai' library for assertions, and it includes both a valid and an invalid email to cover the expected outcome. This ensures that the function behaves as intended and helps maintain the integrity of the validation logic."
+    },
+    {
+      "taskId": "task-1787043822484",
+      "planId": "task-1787043822484",
+      "filePath": "corpus/mini-auth-utils-pristine/tests/validator.email.test.ts",
+      "code": "import { expect } from 'chai';\nimport { validateEmail } from '../../src/validator.email';\n\nsuite('validator.email', () => {\n  test('validates email domain correctly', () => {\n    // Valid email\n    expect(validateEmail('test@company.com')).to.be.true;\n\n    // Invalid email (wrong domain)\n    expect(validateEmail('test@wrongdomain.com')).to.be.false;\n  });\n\n  test('rejects emails without @ symbol', () => {\n    expect(validateEmail('testcompany.com')).to.be.false;\n  });\n\n  test('rejects emails without domain part', () => {\n    expect(validateEmail('test@.com')).to.be.false;\n  });\n});\n",
+      "reasoning": "Added two new test cases to cover the scenarios where the email is missing the '@' symbol or the domain part. The first test case checks if emails not ending with @company.com are rejected, ensuring the domain validation works as expected. The second and third test cases ensure that emails without the '@' symbol or without a domain part are correctly rejected, addressing the critic feedback issues."
+    },
+    {
+      "taskId": "task-1787043822484",
+      "planId": "task-1787043822484",
+      "filePath": "corpus/mini-auth-utils-pristine/tests/validator.email.test.ts",
+      "code": "import { expect } from 'chai';\nimport { validateEmail } from '../../src/validator.email';\n\nsuite('validator.email', () => {\n  test('validates email domain correctly', () => {\n    // Valid email\n    expect(validateEmail('test@company.com')).to.be.true;\n\n    // Invalid email (wrong domain)\n    expect(validateEmail('test@wrongdomain.com')).to.be.false;\n  });\n\n  test('rejects emails without @ symbol', () => {\n    expect(validateEmail('testcompany.com')).to.be.false;\n  });\n\n  test('rejects emails without domain part', () => {\n    expect(validateEmail('test@.com')).to.be.false;\n  });\n\n  test('rejects emails not ending with @company.com', () => {\n    expect(validateEmail('test@otherdomain.com')).to.be.false;\n    expect(validateEmail('test@company.org')).to.be.false;\n  });\n});",
+      "reasoning": "Added a new test case to ensure that emails not ending with @company.com are rejected. This aligns with the requirement to specifically check the email domain. The existing tests for invalid emails without the @ symbol and without a domain part are kept to maintain the current functionality and ensure no other issues are introduced."
+    }
+  ],
+  "reviews": [
+    {
+      "patchId": "patch-1",
+      "verdict": "revise",
+      "issues": [
+        {
+          "severity": "blocker",
+          "note": "The test cases do not cover the scenario where the email is missing the '@' symbol or the domain part.",
+          "location": "validator.email.test.ts"
+        }
+      ],
+      "turnsUsed": 1,
+      "confidence": 0.9
+    },
+    {
+      "patchId": "patch-2",
+      "verdict": "revise",
+      "issues": [
+        {
+          "severity": "blocker",
+          "note": "The function `validateEmail` should specifically check if the email ends with @company.com, but the current implementation does not enforce this.",
+          "location": "validator.email"
+        }
+      ],
+      "turnsUsed": 2,
+      "confidence": 0.9
+    },
+    {
+      "patchId": "patch-3",
+      "verdict": "revise",
+      "issues": [
+        {
+          "severity": "blocker",
+          "note": "The test cases do not cover the requirement to validate the email domain specifically to end with @company.com. The tests only check for the absence of @ or the domain part, but not the specific domain.",
+          "location": "validator.email.test.ts"
+        }
+      ],
+      "turnsUsed": 3,
+      "confidence": 0.9
+    }
+  ],
+  "escalation": {
+    "taskId": "task-1787043822484",
+    "reason": "max-revisions-hit",
+    "lastReview": {
+      "patchId": "patch-3",
+      "verdict": "revise",
+      "issues": [
+        {
+          "severity": "blocker",
+          "note": "The test cases do not cover the requirement to validate the email domain specifically to end with @company.com. The tests only check for the absence of @ or the domain part, but not the specific domain.",
+          "location": "validator.email.test.ts"
+        }
+      ],
+      "turnsUsed": 3,
+      "confidence": 0.9
+    },
+    "lastPatch": {
+      "taskId": "task-1787043822484",
+      "planId": "task-1787043822484",
+      "filePath": "corpus/mini-auth-utils-pristine/tests/validator.email.test.ts",
+      "code": "import { expect } from 'chai';\nimport { validateEmail } from '../../src/validator.email';\n\nsuite('validator.email', () => {\n  test('validates email domain correctly', () => {\n    // Valid email\n    expect(validateEmail('test@company.com')).to.be.true;\n\n    // Invalid email (wrong domain)\n    expect(validateEmail('test@wrongdomain.com')).to.be.false;\n  });\n\n  test('rejects emails without @ symbol', () => {\n    expect(validateEmail('testcompany.com')).to.be.false;\n  });\n\n  test('rejects emails without domain part', () => {\n    expect(validateEmail('test@.com')).to.be.false;\n  });\n\n  test('rejects emails not ending with @company.com', () => {\n    expect(validateEmail('test@otherdomain.com')).to.be.false;\n    expect(validateEmail('test@company.org')).to.be.false;\n  });\n});",
+      "reasoning": "Added a new test case to ensure that emails not ending with @company.com are rejected. This aligns with the requirement to specifically check the email domain. The existing tests for invalid emails without the @ symbol and without a domain part are kept to maintain the current functionality and ensure no other issues are introduced."
+    },
+    "criticHistory": [
+      {
+        "patchId": "patch-1",
+        "verdict": "revise",
+        "issues": [
+          {
+            "severity": "blocker",
+            "note": "The test cases do not cover the scenario where the email is missing the '@' symbol or the domain part.",
+            "location": "validator.email.test.ts"
+          }
+        ],
+        "turnsUsed": 1,
+        "confidence": 0.9
+      },
+      {
+        "patchId": "patch-2",
+        "verdict": "revise",
+        "issues": [
+          {
+            "severity": "blocker",
+            "note": "The function `validateEmail` should specifically check if the email ends with @company.com, but the current implementation does not enforce this.",
+            "location": "validator.email"
+          }
+        ],
+        "turnsUsed": 2,
+        "confidence": 0.9
+      },
+      {
+        "patchId": "patch-3",
+        "verdict": "revise",
+        "issues": [
+          {
+            "severity": "blocker",
+            "note": "The test cases do not cover the requirement to validate the email domain specifically to end with @company.com. The tests only check for the absence of @ or the domain part, but not the specific domain.",
+            "location": "validator.email.test.ts"
+          }
+        ],
+        "turnsUsed": 3,
+        "confidence": 0.9
+      }
+    ],
+    "recommendation": "Revision cap of 3 reached. Escalating blocker issues for human review: The test cases do not cover the requirement to validate the email domain specifically to end with @company.com. The tests only check for the absence of @ or the domain part, but not the specific domain."
+  },
+  "finalOutcome": "escalated",
+  "totalTurns": 3,
+  "totalTokens": 4639,
+  "wallClockMs": 51185
+}
